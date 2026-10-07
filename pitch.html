@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bären-Pitch</title>
+<style>
+  :root {
+    --gruen: #1fa855;
+    --gelb-akzent: #ffe066;
+    --grau-akzent: #8a8a92;
+    --bg: #0c0c0e;
+    --panel-bg: #151517;
+    --kachel-bg: #1b1b1e;
+    --kachel-aktiv: #26262b;
+    --header-bg: #b91c2c;
+    --text: #f0f0f0;
+    --text-leise: #9a9aa2;
+  }
+  * { box-sizing: border-box; }
+  html, body { max-width: 100vw; }
+  body { overflow-x: hidden; }
+  body {
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .leiste {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--panel-bg);
+    border-bottom: 1px solid #232326;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  }
+  .kopf {
+    background: var(--header-bg);
+    padding: 8px 16px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .kopf h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .kopf .stand {
+    font-size: 12px;
+    opacity: 0.9;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .live-punkt {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4dff88;
+    box-shadow: 0 0 6px 1px rgba(77,255,136,0.7);
+    animation: livePuls 1.8s ease-in-out infinite;
+  }
+  @keyframes livePuls {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.75); }
+  }
+
+  .steuerung {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 10px 16px 6px;
+  }
+  .steuerung button {
+    appearance: none;
+    border: 0;
+    border-radius: 12px;
+    min-height: 56px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    color: #fff;
+    transition: transform 0.08s ease, opacity 0.2s ease;
+  }
+  .steuerung button:active:not(:disabled) { transform: scale(0.97); }
+  .steuerung button:disabled { opacity: 0.3; cursor: default; }
+  #btn-zurueck { background: #34343a; }
+  #btn-vor { background: var(--gruen); }
+  .zaehler {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-leise);
+    padding: 0 16px 8px;
+    min-height: 22px;
+  }
+
+  main { width: 100%; padding: 6px 16px 40px; }
+  section h2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    margin: 20px 0 8px;
+    color: #b8b8bc;
+  }
+  section h2 .anzahl { font-size: 12px; font-weight: 500; color: #6e6e76; }
+
+  .pitch {
+    scroll-margin-top: 180px;
+    scroll-margin-bottom: 40px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 14px 14px 12px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    background: var(--kachel-bg);
+    border-left: 5px solid var(--akzent, var(--grau-akzent));
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04);
+    transition: opacity 0.3s ease, transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+  .pitch.g-baeren { --akzent: var(--gruen); }
+  .pitch.g-vertretungen { --akzent: var(--gelb-akzent); }
+  .pitch.g-gaeste { --akzent: var(--grau-akzent); }
+
+  .pitch .nr {
+    flex: 0 0 auto;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 17px;
+    background: #2c2c31;
+    color: #cfcfd4;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pitch .inhalt { min-width: 0; flex: 1 1 auto; }
+  .pitch .name {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+  }
+  .pitch .zeile2 {
+    margin-top: 3px;
+    font-size: 13px;
+    color: var(--text-leise);
+    overflow-wrap: break-word;
+  }
+  .pitch .zeile2 strong { color: #d8d8dc; font-weight: 600; }
+
+  .pitch.erledigt { opacity: 0.4; }
+  .pitch.aktiv {
+    opacity: 1;
+    background: var(--kachel-aktiv);
+    transform: scale(1.02);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(255,255,255,0.85);
+  }
+  .pitch.aktiv .nr { background: var(--akzent, #fff); color: #0c0c0e; }
+  .pitch.aktiv .name { font-size: 23px; }
+  .pitch.aktiv .zeile2 { font-size: 15px; color: #c4c4ca; }
+
+  .leer { color: #777; font-size: 14px; padding: 4px 0 8px; }
+  footer { text-align: center; font-size: 12px; color: #666; padding: 4px 0 24px; }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .overlay.offen { display: flex; }
+  .dialog {
+    width: 100%;
+    max-width: 420px;
+    background: #1d1d21;
+    border-radius: 16px;
+    padding: 22px 20px 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .dialog p { margin: 0 0 18px; font-size: 18px; font-weight: 700; line-height: 1.3; text-align: center; }
+  .dialog .knoepfe { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dialog button {
+    appearance: none;
+    border: 0;
+    border-radius: 12px;
+    min-height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #fff;
+    cursor: pointer;
+  }
+  #dlg-abbrechen { background: #34343a; }
+  #dlg-ja { background: var(--header-bg); }
+</style>
+</head>
+<body>
+
+<div class="leiste">
+  <div class="kopf">
+    <h1>Berlin Bär &middot; Pitch</h1>
+    <div class="stand"><span class="live-punkt"></span><span id="stand">wird geladen…</span></div>
+  </div>
+  <div class="steuerung">
+    <button id="btn-zurueck" type="button" disabled>&larr; Zurück</button>
+    <button id="btn-vor" type="button" disabled>Vor &rarr;</button>
+  </div>
+  <div class="zaehler" id="zaehler"></div>
+</div>
+
+<div id="abstand"></div>
+<main id="liste"></main>
+
+<footer>Aktualisiert automatisch alle 10 Sekunden</footer>
+
+<div class="overlay" id="overlay">
+  <div class="dialog" role="dialog" aria-modal="true">
+    <p>Wirklich zurück zum vorherigen Pitch?</p>
+    <div class="knoepfe">
+      <button id="dlg-abbrechen" type="button">Abbrechen</button>
+      <button id="dlg-ja" type="button">Ja, zurück</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var gruppen = [];
+  var flach = [];
+  var kacheln = [];
+  var aktuellerKey = null;
+  var aktuellerIndex = 0;
+  var letzteDatenJson = '';
+
+  function baueFlach() {
+    flach = [];
+    var nr = 0;
+    gruppen.forEach(function(g) {
+      g.items.forEach(function(it) {
+        nr++;
+        flach.push({ key: it.key, nr: nr });
+      });
+    });
+  }
+
+  function bestimmeAktuell() {
+    if (flach.length === 0) {
+      aktuellerKey = null;
+      aktuellerIndex = 0;
+      return;
+    }
+    var idx = -1;
+    if (aktuellerKey !== null) {
+      for (var i = 0; i < flach.length; i++) {
+        if (flach[i].key === aktuellerKey) { idx = i; break; }
+      }
+    }
+    if (idx < 0) idx = Math.min(aktuellerIndex, flach.length - 1);
+    aktuellerIndex = idx;
+    aktuellerKey = flach[idx].key;
+  }
+
+  function el(tag, klasse, text) {
+    var e = document.createElement(tag);
+    if (klasse) e.className = klasse;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function baueListe() {
+    var liste = document.getElementById('liste');
+    liste.innerHTML = '';
+    kacheln = [];
+    var nr = 0;
+    gruppen.forEach(function(g) {
+      var section = document.createElement('section');
+      var h2 = el('h2', '', g.titel);
+      h2.appendChild(el('span', 'anzahl', String(g.items.length)));
+      section.appendChild(h2);
+
+      if (g.items.length === 0) {
+        section.appendChild(el('div', 'leer', 'Noch niemand eingecheckt.'));
+      }
+
+      g.items.forEach(function(it) {
+        nr++;
+        var k = el('article', 'pitch g-' + g.id);
+        k.appendChild(el('div', 'nr', String(nr)));
+        var inhalt = el('div', 'inhalt');
+        inhalt.appendChild(el('div', 'name', it.name));
+        if (g.id === 'baeren' && it.vorgestelltVon) {
+          var z = el('div', 'zeile2', 'wird vorgestellt von ');
+          z.appendChild(el('strong', '', it.vorgestelltVon));
+          inhalt.appendChild(z);
+        } else if (g.id === 'vertretungen' && it.vertritt) {
+          var z2 = el('div', 'zeile2', 'vertritt ');
+          z2.appendChild(el('strong', '', it.vertritt));
+          inhalt.appendChild(z2);
+        }
+        k.appendChild(inhalt);
+        section.appendChild(k);
+        kacheln.push(k);
+      });
+
+      liste.appendChild(section);
+    });
+  }
+
+  function aktualisiereAnsicht(scrollen) {
+    for (var i = 0; i < kacheln.length; i++) {
+      kacheln[i].classList.toggle('aktiv', i === aktuellerIndex);
+      kacheln[i].classList.toggle('erledigt', i < aktuellerIndex);
+    }
+    var n = flach.length;
+    document.getElementById('zaehler').textContent =
+      n === 0 ? 'Noch keine Pitches' : 'Pitch ' + (aktuellerIndex + 1) + ' von ' + n;
+    document.getElementById('btn-zurueck').disabled = (n === 0 || aktuellerIndex <= 0);
+    document.getElementById('btn-vor').disabled = (n === 0 || aktuellerIndex >= n - 1);
+    if (scrollen && kacheln[aktuellerIndex]) {
+      kacheln[aktuellerIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function geheZu(index) {
+    if (index < 0 || index > flach.length - 1) return;
+    aktuellerIndex = index;
+    aktuellerKey = flach[index].key;
+    aktualisiereAnsicht(true);
+  }
+
+  function render(daten) {
+    var d = new Date(daten.stand);
+    document.getElementById('stand').textContent =
+      'Stand: ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    var json = JSON.stringify(daten.gruppen);
+    if (json !== letzteDatenJson) {
+      letzteDatenJson = json;
+      gruppen = daten.gruppen;
+      baueFlach();
+      bestimmeAktuell();
+      baueListe();
+      aktualisiereAnsicht(false);
+    }
+  }
+
+  var API_URL = 'https://script.google.com/macros/s/AKfycbxIgewaNll8ECQKO25jcC-dFAtsp1XWIXCuxGaG_EWN7rQGDUergAq6O7Cpr77ZBfy1zQ/exec';
+
+  function ladeDaten() {
+    fetch(API_URL + '?seite=pitch&format=json')
+      .then(function(r) { return r.json(); })
+      .then(render)
+      .catch(function(err) {
+        document.getElementById('stand').textContent = 'Fehler beim Laden: ' + err.message;
+      });
+  }
+
+  var overlay = document.getElementById('overlay');
+  function oeffneDialog() { overlay.classList.add('offen'); }
+  function schliesseDialog() { overlay.classList.remove('offen'); }
+
+  document.getElementById('btn-vor').addEventListener('click', function() {
+    geheZu(aktuellerIndex + 1);
+  });
+  document.getElementById('btn-zurueck').addEventListener('click', function() {
+    if (aktuellerIndex > 0) oeffneDialog();
+  });
+  document.getElementById('dlg-abbrechen').addEventListener('click', schliesseDialog);
+  document.getElementById('dlg-ja').addEventListener('click', function() {
+    schliesseDialog();
+    geheZu(aktuellerIndex - 1);
+  });
+  overlay.addEventListener('click', function(ev) {
+    if (ev.target === overlay) schliesseDialog();
+  });
+  document.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape') schliesseDialog();
+  });
+
+  function passeAbstandAn() {
+    var leiste = document.querySelector('.leiste');
+    document.getElementById('abstand').style.height = leiste.offsetHeight + 'px';
+  }
+  window.addEventListener('resize', passeAbstandAn);
+  window.addEventListener('load', passeAbstandAn);
+  passeAbstandAn();
+
+  ladeDaten();
+  setInterval(ladeDaten, 10000);
+</script>
+
+</body>
+</html>
